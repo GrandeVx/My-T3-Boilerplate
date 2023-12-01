@@ -22,7 +22,7 @@ export function CreatePost() {
         e.preventDefault();
         createPost.mutate({ name });
       }}
-      className="flex flex-col gap-2"
+      className="flex flex-row gap-2"
     >
       <input
         type="text"
@@ -33,7 +33,7 @@ export function CreatePost() {
       />
       <button
         type="submit"
-        className="rounded-full bg-white/10 px-10 py-3 font-semibold transition hover:bg-white/20"
+        className="rounded-full bg-slate-300 px-10 py-3 font-semibold transition hover:bg-white/20"
         disabled={createPost.isLoading}
       >
         {createPost.isLoading ? "Submitting..." : "Submit"}

@@ -2,20 +2,18 @@
 import { CreatePost } from "@/app/_components/create-post";
 import { api } from "@/trpc/react";
 import {
-  SignIn,
   SignInButton,
   SignOutButton,
-  SignedIn,
-  SignedOut,
   currentUser,
   useUser,
 } from "@clerk/nextjs";
 import Link from "next/link";
 import Balancer from "react-wrap-balancer";
 import getStripe from "@/lib/getStripe";
-import { Animated_h1, Animated_p } from "@/lib/animated";
+import { Animated_div, Animated_h1, Animated_p } from "@/lib/animated";
 import Stripe from "stripe";
 import { cn } from "@/lib/utils";
+import LoadingComponent from "../_components/loading";
 
 export default function Home() {
   const { mutate: getCheckoutSession } =
@@ -29,36 +27,77 @@ export default function Home() {
     });
 
   const { user, isLoaded } = useUser();
-  const { data: premiumData } = api.stripe.getUserSubscription.useQuery({});
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen w-full bg-slate-100">
+        <LoadingComponent />
+      </div>
+    );
+  }
+
+  const { data: premiumData, isLoading } = {
+    data: { isPremium: false },
+    isLoading: false,
+  };
+
+  /*
+
+    i hard coded the premium because 
+    i can't do the stripe integration on a public page
+
+    you need to work like that:
+
+    const { data: premiumData, isLoading } = api.stripe.getUserSubscription.useQuery({});
+
+    and then you can check if the user is premium or not
+
+  */
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full bg-slate-100">
+        <LoadingComponent />
+      </div>
+    );
+  }
 
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center pt-48">
+    <main className="flex min-h-screen w-full flex-col items-center justify-center bg-slate-100 pt-48">
       <div className="z-10 min-h-[50vh] w-full max-w-4xl px-5 xl:px-0">
         <Animated_h1
-          className="animate-fade-up bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-center text-4xl font-bold tracking-[-0.02em] text-transparent opacity-0 drop-shadow-sm md:text-7xl/[5rem]"
+          className="animate-fade-up bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-center text-7xl font-bold tracking-[-0.02em] text-transparent opacity-0 drop-shadow-sm md:text-8xl/[5rem]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ delay: 0.1, duration: 0.6 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
         >
           <Balancer> T3 Template App</Balancer>
         </Animated_h1>
         <Animated_p
-          className="animate-fade-up mt-6 text-center text-muted-foreground/80 md:text-xl"
+          className="animate-fade-up mt-6 text-center text-muted-foreground/80 md:text-lg"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
         >
           <Balancer>
-            This is a boilerplate for a fullstack Next.js app i have done
-            implementing different template around the web.
+            This is a boilerplate for a fullstack{" "}
+            <span className="font-bold">Next.js</span> app i have done
+            implementing different template around the web. I have done This
+            because every time i try to start a new project i have to do the
+            same thing over and over again (and every time something decide to
+            don't work...). I promise to keep this updated and to add new stuff
           </Balancer>
         </Animated_p>
         <div>
-          {user ? (
-            <div className="flex w-full flex-col items-center justify-center gap-3">
-              <p className="animate-fade-up text-muted-foreground/800 mt-6 text-center md:text-xl">
+          {user && !isLoading ? (
+            <div className="flex w-full flex-col items-center justify-center gap-3 text-center text-muted-foreground/80 md:text-lg">
+              <Animated_p
+                className="animate-fade-up text-muted-foreground/800 mt-6 text-center md:text-xl"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
                 Logged in as {user.fullName} and you are{" "}
                 <span
                   className={cn(
@@ -67,37 +106,47 @@ export default function Home() {
                 >
                   {premiumData?.isPremium ? "Premium" : "Not Premium"}
                 </span>
-              </p>
-              <SignOutButton>
-                <button className="rounded-full bg-violet-400 p-3 font-bold text-slate-300">
-                  Sign Out
+              </Animated_p>
+              <Animated_div
+                className="animate-fade-up flex flex-row items-center justify-between gap-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <SignOutButton>
+                  <button className="rounded-lg bg-violet-600 p-3 font-normal text-white">
+                    Sign Out
+                  </button>
+                </SignOutButton>
+                <button
+                  className={cn(
+                    "rounded-lg bg-violet-600 p-3 text-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50",
+                    premiumData?.isPremium
+                      ? "cursor-not-allowed bg-gray-400 opacity-50"
+                      : "",
+                  )}
+                  disabled={premiumData?.isPremium || !user ? true : false}
+                  onClick={
+                    () =>
+                      getCheckoutSession({ productId: "prod_NrtQkWbBicei7U" }) // This is the price ID of the product we created in the Stripe dashboard
+                  }
+                >
+                  Become Premium
                 </button>
-              </SignOutButton>
+              </Animated_div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center gap-3">
-              <p className=" mt-6 text-center text-black text-muted-foreground/80  md:text-xl">
+            <div className="mt-6 flex flex-row items-center justify-center gap-2">
+              <p className=" text-center text-black text-muted-foreground/80  md:text-xl">
                 You are not logged in
               </p>
               <SignInButton redirectUrl="/sign-in">
-                <button className="rounded-full bg-violet-400 p-3 font-bold text-slate-300">
+                <p className="text-center text-black text-muted-foreground/80 underline transition-colors hover:text-violet-600 md:text-xl ">
                   Sign in Now
-                </button>
+                </p>
               </SignInButton>
             </div>
           )}
-
-          <div className="mt-3 flex w-full items-center justify-center">
-            <button
-              className="rounded-lg bg-violet-600 p-3 text-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50"
-              onClick={
-                () => getCheckoutSession({ productId: "prod_NrtQkWbBicei7U" }) // This is the price ID of the product we created in the Stripe dashboard
-              }
-              disabled={!user}
-            >
-              Become Premium
-            </button>
-          </div>
         </div>
         <div className="mt-3 flex flex-col items-center">
           <CrudShowcase />
@@ -108,6 +157,7 @@ export default function Home() {
 }
 
 function CrudShowcase() {
+  "use client";
   const { data: latestPost, isLoading } = api.post.getAllPosts.useQuery();
 
   if (isLoading || !latestPost) {
@@ -116,10 +166,6 @@ function CrudShowcase() {
 
   return (
     <div className="w-full max-w-xs">
-      {/* Try posting when not logged in. You will see protected procedure gives an UNAUTHORIZED error. 
-       Ideally you wouldn't even show the button if the user is not logged in, but this is just a demo to show 
-       that tRPC protectedProcedures work.
-      */}
       <CreatePost />
       <div className="mt-6 flex flex-col">
         <ul className="space-y-2">
